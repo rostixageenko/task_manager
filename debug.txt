@@ -1,0 +1,168 @@
+<?php
+require_once("config.php");
+
+$result = $conn->query("SELECT * FROM books ORDER BY created_at DESC");
+
+$books = [];
+if ($result && $result->num_rows > 0) {
+    while ($row = $result->fetch_assoc()) {
+        $books[] = $row;
+    }
+    $result->free();
+}
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Главная функция</title>
+    <link rel="stylesheet" href="css.css" media="all">
+</head>
+
+<body>
+    <header>
+        <h1>Система управления прочитанными книгами</h1>
+    </header>
+    <main>
+        <?php if (isset($_GET['message'])): ?>
+            <div class="success">
+                <?= htmlspecialchars($_GET['message']) ?>
+            </div>
+        <?php elseif (isset($_GET['error'])): ?>
+            <div class="error">
+                <?= htmlspecialchars($_GET['error']) ?>
+            </div>
+        <?php endif; ?>
+        <?php if (count($books) > 0) { ?>
+            <table>
+                <caption>Список книг</caption>
+                <tr>
+                    <!-- <th>Id</th> -->
+                    <th>Название книги</th>
+                    <th>Автор</th>
+                    <th>Год</th>
+                    <th>Статус</th>
+                    <th>Время создания</th>
+                    <th colspan="3">
+                        <a href="#addModal" class="open-btn">Добавить книгу</a>
+                    </th>
+                </tr>
+                <?php foreach ($books as $b) { ?>
+                    <tr>
+                        <td><?= ($b['title']) ?></td>
+                        <td><?= ($b['author']) ?></th>
+                        <td><?= ($b['year']) ?></td>
+                        <td>
+                            <div class="<?php switch ($b['status']) {
+                                case 'в планах':
+                                    echo 'not-read';
+                                    break;
+                                case 'прочитана':
+                                    echo 'read';
+                                    break;
+                                case 'в процессе':
+                                    echo 'in-progress';
+                                    break;
+                            }
+                            ?>">
+                                <?= ($b['status']) ?>
+                                <!-- <svg class="selection" xmlns="http://www.w3.org/2000/svg" fill="currentColor"
+                                    viewBox="0 0 640 640">
+                                    <path
+                                        d="M303.5 473C312.9 482.4 328.1 482.4 337.4 473L537.4 273C546.8 263.6 546.8 248.4 537.4 239.1C528 229.8 512.8 229.7 503.5 239.1L320.5 422.1L137.5 239.1C128.1 229.7 112.9 229.7 103.6 239.1C94.3 248.5 94.2 263.7 103.6 273L303.6 473z" />
+                                </svg> -->
+                            </div>
+                        </td>
+                        <td><?= date('d M Y', strtotime($b['created_at'])) . '<br>' . date('H:i', strtotime($b['created_at'])) ?>
+                        </td>
+                        <td>
+                            <form action="update_status.php" method="POST">
+                                <input type="hidden" name="id" value="<?= $b['id'] ?>">
+                                <button type="submit" style="border: none; background: none; cursor: pointer;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640">
+                                        <path
+                                            d="M534 132.5C544.8 140.2 547.2 155.2 539.5 166L275.5 534C271.4 539.7 265 543.4 258 543.9C251 544.4 244 542 239 537L103 401C93.6 391.6 93.6 376.4 103 367.1C112.4 357.8 127.6 357.7 136.9 367.1L253 483L500.5 138C508.2 127.2 523.2 124.8 534 132.5z" />
+                                    </svg>
+                                </button>
+                            </form>
+                        </td>
+
+                        <td>
+                            <a href="?edit_id=<?= $b['id'] ?>#editModal">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640">
+                                    <path
+                                        d="M122.9 379.1C112.2 389.8 104.4 403.2 100.3 417.8L64.9 545.6C62.6 553.9 64.9 562.9 71.1 569C77.3 575.1 86.2 577.5 94.5 575.2L222.3 539.7C236.9 535.6 250.2 527.9 261 517.1L555 223.1C568.4 209.6 576 191.2 576 172C576 152.8 568.4 134.4 554.8 120.9L519.1 85.2C505.6 71.6 487.2 64 468 64C448.8 64 430.4 71.6 416.9 85.2L122.9 379.2zM468 112C474.4 112 480.6 114.6 485.2 119.1L520.9 154.8C525.5 159.4 528 165.5 528 172C528 178.5 525.4 184.6 520.9 189.2L468 242.1L397.9 172L450.8 119.1C455.4 114.5 461.5 112 468 112zM173.9 396L364 205.9L434.1 276L244 466.1L173.9 396zM145.3 435.3L204.7 494.7L122.5 517.5L145.3 435.3z" />
+                                </svg>
+                            </a>
+                        </td>
+
+                        <td>
+                            <form action="delete.php" method="POST">
+                                <input type="hidden" name="id" value="<?= $b['id'] ?>">
+                                <button type="submit" style="border: none; background: none; cursor: pointer;">
+                                    <svg class="delete-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640">
+                                        <path
+                                            d="M232.2 68.8C236.9 56.3 248.8 48 262.2 48L377.8 48C391.1 48 403.1 56.3 407.8 68.8L424 112L520 112C533.3 112 544 122.7 544 136C544 149.3 533.3 160 520 160L120 160C106.7 160 96 149.3 96 136C96 122.7 106.7 112 120 112L216 112L232.2 68.8zM147.6 516.8L124.7 208L172.9 208L195.5 513.2C196.1 521.6 203.1 528 211.5 528L428.6 528C437 528 443.9 521.5 444.6 513.2L467.2 208L515.3 208L492.4 516.7C489.9 550.1 462.1 576 428.6 576L211.5 576C178 576 150.2 550.1 147.7 516.7z" />
+                                    </svg>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                <?php } ?>
+            </table>
+            <div id="addModal" class="modal">
+                <div class="modal-content">
+                    <a href="#" class="close">&times;</a>
+                    <h2>Добавить книгу</h2>
+                    <form action="add.php" method="POST">
+                        <input type="text" name="title" placeholder="Название" required><br>
+                        <input type="text" name="author" placeholder="Автор" required><br>
+                        <input type="number" name="year" placeholder="Год" required><br>
+                        <select name="status">
+                            <option value="0">в планах</option>
+                            <option value="1">В процессе</option>
+                            <option value="2">Прочитана</option>
+                        </select><br>
+                        <button type="submit">Сохранить</button>
+                    </form>
+                </div>
+            </div>
+            <div id="editModal" class="modal">
+                <div class="modal-content">
+                    <?php $edit_id = isset($_GET['edit_id']) ? intval($_GET['edit_id']) : null; ?>
+                    <a href="index.php#" class="close">&times;</a>
+                    <h2>Редактировать задачу</h2>
+                    <form action="edit.php?id=<?= $edit_id ?>" method="POST">
+                        <?php
+                        foreach ($books as $book) {
+                            if ($book['id'] == $edit_id) { ?>
+                                <label>Название книги:</label>
+                                <input type="text" name="title" value="<?= htmlspecialchars($book['title']) ?>" required><br>
+                                <label>Автор:</label>
+                                <input type="text" name="author" value="<?= htmlspecialchars($book['author']) ?>" required><br>
+                                <label>Год издания:</label>
+                                <input type="number" name="year" value="<?= htmlspecialchars($book['year']) ?>" required><br>
+                                <label>Статус:</label>
+                                <select name="status">
+                                    <option value="0" <?= $book['status'] == 'в планах' ? 'selected' : '' ?>>В планах</option>
+                                    <option value="1" <?= $book['status'] == 'в процессе' ? 'selected' : '' ?>> В процессе</option>
+                                    <option value="2" <?= $book['status'] == 'прочитана' ? 'selected' : '' ?>>Прочитана</option>
+                                </select><br>
+                                <button type="submit">Сохранить</button>
+                            <?php }
+                        } ?>
+                    </form>
+                </div>
+            </div>
+        <?php } else { ?>
+            <div class="not-find">
+                <h1>Данных не найдено</h1>
+            </div>
+        <?php } ?>
+    </main>
+</body>
+
+</html>
